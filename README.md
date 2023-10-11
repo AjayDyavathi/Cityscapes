@@ -1,3 +1,5 @@
-# Cityscapes
+# Urban Scence Understanding
 
-new change to the readme file
+Semantic Segmentation of Urban Street Scenes
+
+This project implements various CNN architectures to perform semantic segmentation on Cityscapes data.
