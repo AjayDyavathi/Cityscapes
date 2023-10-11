@@ -1,9 +1,12 @@
 """
+dataset.py
 Dataset creation and preprocessing
 prepares dataloaders for cityscapes dataset.
 """
 
 import os
+import argparse
+
 from PIL import Image
 from torch.utils.data import Dataset
 
@@ -89,8 +92,8 @@ Loaded {len(self.image_paths)} images")
         return len(self.image_paths)
 
     def __iter__(self):
-        for index_ in range(self.__len__()):
-            yield self.__getitem__(index_)
+        for idx_ in range(self.__len__()):
+            yield self.__getitem__(idx_)
 
     def get_source_image_paths(self, id_=False):
         "Given the id, return the full path of an image"
@@ -121,3 +124,44 @@ Loaded {len(self.image_paths)} images")
             annots = annots[0]
 
         return img, annots
+
+
+if __name__ == "__main__":
+    import random
+    import matplotlib.pyplot as plt
+
+    parser = argparse.ArgumentParser(description="root_path")
+    parser.add_argument(
+        "--path",
+        nargs="?",
+        type=str,
+        default="/Users/ajaydyavathi/Desktop/My_Cityscapes/cityscapes/",
+        help="Specify the root directory to cityscapes dataset"
+    )
+    parser.add_argument(
+        "--split",
+        nargs="?",
+        type=str,
+        default="train",
+        help="Specify the split"
+    )
+
+    args = parser.parse_args()
+    path = args.path
+    train_dataset = Cityscapes(args.path, args.split,
+                               target_type="color")
+
+    N_PICS = 3
+    plt.figure(figsize=(10, 8))
+    for i in range(N_PICS):
+        index_ = random.randint(0, len(train_dataset))
+        image, color_mask = train_dataset[index_]
+        plt.subplot(N_PICS, 2, 2*i + 1)
+        plt.imshow(image)
+        plt.axis("off")
+        plt.subplot(N_PICS, 2, 2*i + 2)
+        plt.imshow(color_mask)
+        plt.axis("off")
+
+    plt.tight_layout()
+    plt.show()
