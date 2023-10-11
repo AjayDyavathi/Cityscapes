@@ -1,0 +1,22 @@
+# Cityscapes/dataset.py: 131
+matplotlib==3.8.0
+# Cityscapes/metrics.py: 14
+# Cityscapes/train.py: 22
+# Cityscapes/utils.py: 12
+numpy==1.23.4
+# Cityscapes/dataset.py: 10
+# Cityscapes/train.py: 23
+Pillow==9.5.0
+# Cityscapes/train.py: 20
+PyYAML==6.0
+# Cityscapes/dataset.py: 11
+# Cityscapes/loss.py: 7
+# Cityscapes/models.py: 7,8
+# Cityscapes/schedulers.py: 8
+# Cityscapes/train.py: 21,26,27
+# Cityscapes/utils.py: 11,13
+torch==2.0.1
+# Cityscapes/train.py: 25
+torchvision==0.15.2
+# Cityscapes/train.py: 24
+tqdm==4.64.1
