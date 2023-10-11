@@ -1,0 +1,27 @@
+seed: 1024
+data:
+    name: cityscapes
+    root_path: /Users/ajaydyavathi/Desktop/My_Cityscapes/cityscapes
+    train_split: train
+    val_split: val
+    img_height: 256
+    img_width: 512
+model:
+    architecture: unet
+    n_classes: 20
+training:
+    batch_size: 8
+    n_workers: 8
+    optimizer: 
+        name: adam
+        lr: 1.0e-4
+    scheduler:
+        name: constant
+    loss:
+        name: ce2d
+    checkpoint: false
+    train_epochs: 100
+    print_interval: 5
+    val_interval: 25
+    resume: false
+
