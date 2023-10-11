@@ -4,3 +4,5 @@ __pycache__/
 # Logs
 runs/
 
+# Debug .ipynb files
+debug.ipynb
