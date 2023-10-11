@@ -55,7 +55,7 @@ class RunningScore():
         fwav = (freq[freq > 0] * iu[freq > 0]).sum()
         class_iu = dict(zip(range(self.n_classes), iu))
         score_dict = {
-            "Overall Accuracy: \t": accuracy,
+            "Accuracy: \t": accuracy,
             "Mean Accuracy: \t": acc_class_mean,
             "FreqW Acc \t": fwav,
             "Mean IoU: \t": mean_iu
