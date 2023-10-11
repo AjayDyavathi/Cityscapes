@@ -135,7 +135,7 @@ if __name__ == "__main__":
         "--path",
         nargs="?",
         type=str,
-        default="/Users/ajaydyavathi/Desktop/My_Cityscapes/cityscapes/",
+        default="/Users/ajaydyavathi/My_Cityscapes/dataset/cityscapes/",
         help="Specify the root directory to cityscapes dataset"
     )
     parser.add_argument(
