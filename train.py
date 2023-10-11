@@ -1,6 +1,12 @@
 """
 train.py
 Style and Structure adapted from https://github.com/meetps/pytorch-semseg
+
+TODO: Move model state loading to a new function
+TODO: Save model state on Keyboard Interrupt
+TODO: Store colored predictions in tf.summary for vizualisation
+TODO: Organize cards in tf.summary event files
+TODO: Use progress bars for vizualising training and overall progress
 """
 
 # Standard imports
@@ -29,11 +35,14 @@ from utils import (ZERO_MEAN, UNIT_STD,
                    get_model,
                    get_optimizer,
                    get_scheduler,
-                   get_loss)
+                   get_loss,
+                   get_color_mapper)
 
 
-def prepare_data():
+def prepare_data(utils):
     "Setup datasets and dataloaders"
+    cfg = utils["cfg"]
+    logger = utils["logger"]
     image_size = (cfg["data"]["img_height"], cfg["data"]["img_width"])
     # Transformations for training data
     train_transforms = transforms.Compose([
@@ -84,8 +93,11 @@ def prepare_data():
     return t_loader, v_loader
 
 
-def prepare_components():
+def prepare_components(utils):
     "A function to setup model, optimizer, scheduler and loss function"
+    cfg = utils["cfg"]
+    device = utils.get("device", "cpu")
+    logger = utils["logger"]
     # Model
     model = get_model(cfg["model"]).to(device)
     model = torch.nn.DataParallel(model,
@@ -113,8 +125,12 @@ def prepare_components():
             "criterion": criterion}
 
 
-def train(train_loader, val_loader, components_dict):
+def train(utils, train_loader, val_loader, components_dict):
     "Training"
+    cfg = utils["cfg"]
+    device = utils.get("device", "cpu")
+    logger = utils["logger"]
+    writer = utils["writer"]
     # Load components from dict
     model = components_dict["model"]
     optimizer = components_dict["optimizer"]
@@ -181,7 +197,7 @@ def train(train_loader, val_loader, components_dict):
             if batch_num % cfg["training"]["print_interval"] == 0:
                 # Format a string with stats
                 fmt_str = "[Epoch {:03d}][{:03d}/{:03d}] \
-                    Loss: {:0.4f} Time/Image: {:0.4f}"
+Loss: {:0.4f} Time/Image: {:0.4f}"
                 print_str = fmt_str.format(
                     epoch,
                     batch_num,
@@ -227,19 +243,19 @@ def train(train_loader, val_loader, components_dict):
                 logger.info("[VALID][Epoch %03d][%03d/%03d] Loss: %.04f",
                             epoch, batch_num, n_batches,
                             val_loss_meter.mean)
-                
+
                 score, class_iu = running_metrics_val.get_scores()
                 for k, v in score.items():
                     print(k, v)
                     logger.info("{%s}: {%f}", k, v)
                     writer.add_scalar(f"val_metrics/{k.strip()}",
                                       v, current_iter)
-                
+
                 for k, v in class_iu.items():
                     logger.info("{%d}: {%f}", k, v)
                     writer.add_scalar(f"val_metrics/class_{k}",
                                       v, current_iter)
-                
+
                 val_loss_meter.reset()
                 running_metrics_val.reset()
 
@@ -283,7 +299,7 @@ if __name__ == "__main__":
     writer = SummaryWriter(logdir)
 
     print(f"RUNDIR: {logdir}")
-    shutil.copy(args.config, logdir)
+    shutil.copy(args.cfg, logdir)
 
     logger = get_logger(logdir)
     logger.info("Initiated...")
@@ -301,7 +317,13 @@ if __name__ == "__main__":
     )
     logger.info("Using device: %s", device)
 
-    train_loader, val_loader = prepare_data()
-    components = prepare_components()
-
-    train(train_loader, val_loader, components)
+    # Get color mapper
+    colored = get_color_mapper(cfg["data"])
+    utils = {"cfg": cfg,
+             "device": device,
+             "logger": logger,
+             "writer": writer,
+             "colored": colored}
+    train_loader, val_loader = prepare_data(utils)
+    components = prepare_components(utils)
+    train(utils, train_loader, val_loader, components)

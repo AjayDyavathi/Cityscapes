@@ -1,7 +1,15 @@
+"""
+models.py
+Model architectures for semantic segmentation
+
+TODO: Add more models
+"""
 import torch
-import torch.nn as nn
+from torch import nn
+
 
 class Unet(nn.Module):
+    "U-net architecture for semantic segmentation"
     def __init__(self, n_classes=20):
         super(Unet, self).__init__()
 

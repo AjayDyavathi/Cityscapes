@@ -24,4 +24,3 @@ training:
     print_interval: 5
     val_interval: 25
     resume: false
-

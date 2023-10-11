@@ -1,5 +1,8 @@
 """
 loss.py
+Computes batch wise loss between predictions and targets
+
+TODO: Add more loss functions
 """
 import torch.nn.functional as F
 

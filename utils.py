@@ -1,5 +1,6 @@
 """
 utils.py
+Implements needed utilities
 """
 
 import os
@@ -10,7 +11,6 @@ from datetime import datetime
 import torch
 import numpy as np
 from torch import optim
-import matplotlib.pyplot as plt
 
 from models import Unet
 from loss import cross_entropy_2d
@@ -144,8 +144,23 @@ def preprocess_labels(mask):
     """
     mask_np = np.array(mask)
     mask_np_clone = mask_np.copy()
-    for id_, trainId_ in id2trainId.items():
-        mask_np_clone[mask_np == id_] = trainId_
+    for id_, train_id_ in id2trainId.items():
+        mask_np_clone[mask_np == id_] = train_id_
 
     mapped_tensor = torch.tensor(mask_np_clone, dtype=torch.int64)
     return mapped_tensor
+
+
+def get_color_mapper(dim_data):
+    "returns closure that maps label to RGB colors"
+    height = dim_data["img_height"]
+    width = dim_data["img_width"]
+    n_channels = 3
+
+    def colored(pred):
+        rgb_pred = torch.zeros((height, width, n_channels)).long()
+        for (train_id, color) in trainId2color.items():
+            rgb_pred[pred == train_id] = torch.tensor(color)
+
+        return rgb_pred
+    return colored

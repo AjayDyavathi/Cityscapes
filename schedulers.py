@@ -1,5 +1,8 @@
 """
 schedulers.py
+Learning rate schedulers for optimizers
+
+TODO: Add more schedulers
 """
 
 from torch.optim.lr_scheduler import _LRScheduler

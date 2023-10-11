@@ -1,5 +1,12 @@
 """
 metrics.py
+Computes scores:
+* Overall accuracy
+* Mean accuracy
+* Mean IoU
+* Frequency weighted accuracy
+* Class wise IoU
+
 Running score adapted from meeetps and wkentaro
 https://github.com/meetps/pytorch-semseg
 https://github.com/wkentaro/pytorch-fcn/blob/master/torchfcn/utils.py
@@ -38,7 +45,7 @@ class RunningScore():
         """
         conf_mx = self.confusion_matrix
         accuracy = conf_mx.diagonal().sum() / conf_mx.sum()
-        acc_class = conf_mx.diagonal().sum() / conf_mx.sum(axis=1)
+        acc_class = conf_mx.diagonal() / conf_mx.sum(axis=1)
         acc_class_mean = np.nanmean(acc_class)
         intersection = conf_mx.diagonal().sum()
         union = conf_mx.sum(axis=0) + conf_mx.sum(axis=1) - intersection
