@@ -299,7 +299,7 @@ if __name__ == "__main__":
     writer = SummaryWriter(logdir)
 
     print(f"RUNDIR: {logdir}")
-    shutil.copy(args.cfg, logdir)
+    shutil.copy(args.config, logdir)
 
     logger = get_logger(logdir)
     logger.info("Initiated...")
