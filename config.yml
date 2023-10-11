@@ -1,7 +1,7 @@
 seed: 1024
 data:
     name: cityscapes
-    root_path: /Users/ajaydyavathi/Desktop/My_Cityscapes/cityscapes
+    root_path: /Users/ajaydyavathi/Desktop/My_Cityscapes/dataset/cityscapes
     train_split: train
     val_split: val
     img_height: 256
