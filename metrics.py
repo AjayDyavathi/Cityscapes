@@ -15,7 +15,7 @@ class RunningScore():
 
     def _fast_hist(self, label, pred):
         # Extract the valid pixel locations from label
-        mask = (label >= 0) & (pred < self.n_classes)
+        mask = (label >= 0) & (label < self.n_classes)
         # bincount(n * L + P).reshape(square)
         hist = np.bincount(
             self.n_classes * label[mask].astype(int) + pred[mask],
