@@ -5,7 +5,6 @@ Style and Structure adapted from https://github.com/meetps/pytorch-semseg
 TODO: Move model state loading to a new function
 TODO: Save model state on Keyboard Interrupt
 TODO: Store colored predictions in tf.summary for vizualisation
-TODO: Organize cards in tf.summary event files
 TODO: Use progress bars for vizualising training and overall progress
 """
 
@@ -210,7 +209,7 @@ Loss: {:0.4f} Time/Image: {:0.4f}"
                 # Log it
                 logger.info(print_str)
                 # Record it
-                writer.add_scalar(f"loss/epoch {epoch}/train_loss",
+                writer.add_scalar(f"loss/epochs/epoch {epoch}",
                                   loss.item(), batch_num)
                 writer.add_scalar("loss/train_loss",
                                   loss.item(), current_iter)
@@ -246,21 +245,21 @@ Loss: {:0.4f} Time/Image: {:0.4f}"
 
                 score, class_iu = running_metrics_val.get_scores()
                 for k, v in score.items():
-                    print(k, v)
-                    logger.info("{%s}: {%f}", k, v)
+                    print(f"{k.ljust(15)}: {v}")
+                    logger.info("{%s}: {%f}", k.ljust(15), v)
                     writer.add_scalar(f"val_metrics/{k.strip()}",
                                       v, current_iter)
 
                 for k, v in class_iu.items():
-                    logger.info("{%d}: {%f}", k, v)
-                    writer.add_scalar(f"val_metrics/class_{k}",
+                    logger.info("[Class IoU] {%d}: {%f}", k, v)
+                    writer.add_scalar(f"val_metrics/class_iou/class_{k}",
                                       v, current_iter)
 
                 val_loss_meter.reset()
                 running_metrics_val.reset()
 
-                if score["Mean IoU: \t"] >= best_iou:
-                    best_iou = score["Mean IoU: \t"]
+                if score["Mean IoU"] >= best_iou:
+                    best_iou = score["Mean IoU"]
                     state = {
                         "epoch": epoch,
                         "model_state": model.state_dict(),
