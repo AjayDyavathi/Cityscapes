@@ -4,5 +4,6 @@ __pycache__/
 # Logs
 runs/
 
-# Debug .ipynb files
+# Debug files
 debug.ipynb
+debug_writer/
