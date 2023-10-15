@@ -45,7 +45,8 @@ def prepare_data(utils):
     image_size = (cfg["data"]["img_height"], cfg["data"]["img_width"])
     # Transformations for training data
     train_transforms = transforms.Compose([
-        transforms.Resize(image_size, interpolation=Image.NEAREST),
+        transforms.Resize(image_size,
+                          interpolation=transforms.InterpolationMode.NEAREST),
         transforms.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3),
         transforms.ToTensor(),
         transforms.Normalize(mean=ZERO_MEAN, std=UNIT_STD),
@@ -53,14 +54,16 @@ def prepare_data(utils):
 
     # Transformations for evaluation (val/test) data
     eval_transforms = transforms.Compose([
-        transforms.Resize(image_size, interpolation=Image.NEAREST),
+        transforms.Resize(image_size,
+                          interpolation=transforms.InterpolationMode.NEAREST),
         transforms.ToTensor(),
         transforms.Normalize(mean=ZERO_MEAN, std=UNIT_STD),
     ])
 
     # Transformations for all annotation
     annot_transforms = transforms.Compose([
-        transforms.Resize(image_size, interpolation=Image.NEAREST),
+        transforms.Resize(image_size,
+                          interpolation=transforms.InterpolationMode.NEAREST),
         transforms.Lambda(preprocess_labels),
     ])
 
