@@ -142,8 +142,8 @@ def train(utils, train_loader, val_loader, components_dict):
     start_epoch = 0
     best_iou = -100.0
     # Load checkpoint if exists
-    checkpoint_path = cfg["training"]["resume"]
-    if checkpoint_path is not None:
+    checkpoint_path = cfg["training"]["checkpoint"]
+    if cfg["training"]["resume"] and checkpoint_path is not None:
         if os.path.isfile(checkpoint_path):
             logger.info("Loading model and optimizer from checkpoint: '%s'",
                         checkpoint_path)
