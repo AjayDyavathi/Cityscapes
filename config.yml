@@ -19,8 +19,8 @@ training:
         name: constant
     loss:
         name: ce2d
+    resume: false
     checkpoint: false
     train_epochs: 100
     print_interval: 5
     val_interval: 25
-    resume: false
