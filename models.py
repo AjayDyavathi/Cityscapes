@@ -21,7 +21,7 @@ class Encode(nn.Module):
         self.out_channels = out_channels
         self.bn = bn
         self.activation = activation
-        self.layers = []
+        self.layers = nn.ModuleList()
         for _ in range(2):
             self.layers.append(nn.Conv2d(self.in_channels,
                                          self.out_channels,
@@ -46,7 +46,7 @@ class Decode(nn.Module):
         self.out_channels = out_channels
         self.bn = bn
         self.activation = activation
-        self.layers = []
+        self.layers = nn.ModuleList()
         self.upscale = nn.ConvTranspose2d(self.in_channels,
                                           self.out_channels,
                                           kernel_size=(2, 2),
@@ -77,15 +77,15 @@ class Unet(nn.Module):
         super().__init__()
         self.enc_ch_levels = [3, 16, 32, 64, 128, 256, 512]
         self.mid_ch = 1024
-        self.dec_ch_levels = [self.mid_ch, 512, 256, 128, 64, 32, 16]
+        self.dec_ch_levels = [self.mid_ch] + self.enc_ch_levels[-1:0:-1]
         self.maxpool = nn.MaxPool2d((2, 2), stride=2)
-        self.enc_layers = []
+        self.enc_layers = nn.ModuleList()
         for in_channels, out_channels in zip(self.enc_ch_levels,
                                              self.enc_ch_levels[1:]):
             self.enc_layers.append(Encode(in_channels, out_channels))
 
         self.mid_layer = Encode(self.enc_ch_levels[-1], self.mid_ch)
-        self.dec_layers = []
+        self.dec_layers = nn.ModuleList()
         for in_channels, out_channels in zip(self.dec_ch_levels,
                                              self.dec_ch_levels[1:]):
             self.dec_layers.append(Decode(in_channels, out_channels))
