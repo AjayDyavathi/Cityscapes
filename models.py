@@ -8,214 +8,101 @@ import torch
 from torch import nn
 
 
-class Unet(nn.Module):
-    "U-net architecture for semantic segmentation"
-    def __init__(self, n_classes=20):
-        super(Unet, self).__init__()
+activations = {
+    "relu": nn.ReLU(),
+}
 
-        # Contraction
-        # 256 x 512 x 3
-        self.enc_conv1 = nn.Conv2d(in_channels=3, out_channels=16, kernel_size=(3, 3), padding="same")
-        self.enc_bn1 = nn.BatchNorm2d(16)
-        self.enc_conv1_1 = nn.Conv2d(in_channels=16, out_channels=16, kernel_size=(3, 3), padding="same")
-        self.enc_bn1_1 = nn.BatchNorm2d(16)
-        self.enc_pool1 = nn.MaxPool2d((2, 2), stride=2)
-        # 128 x 256 x 16
-        self.enc_conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=(3, 3), padding="same")
-        self.enc_bn2 = nn.BatchNorm2d(32)
-        self.enc_conv2_1 = nn.Conv2d(in_channels=32, out_channels=32, kernel_size=(3, 3), padding="same")
-        self.enc_bn2_1 = nn.BatchNorm2d(32)
-        self.enc_pool2 = nn.MaxPool2d((2, 2), stride=2)
-        # 64 x 128 x 32
-        self.enc_conv3 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=(3, 3), padding="same")
-        self.enc_bn3 = nn.BatchNorm2d(64)
-        self.enc_conv3_1 = nn.Conv2d(in_channels=64, out_channels=64, kernel_size=(3, 3), padding="same")
-        self.enc_bn3_1 = nn.BatchNorm2d(64)
-        self.enc_pool3 = nn.MaxPool2d((2, 2), stride=2)
-        # 32 x 64 x 64
-        self.enc_conv4 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=(3, 3), padding="same")
-        self.enc_bn4 = nn.BatchNorm2d(128)
-        self.enc_conv4_1 = nn.Conv2d(in_channels=128, out_channels=128, kernel_size=(3, 3), padding="same")
-        self.enc_bn4_1 = nn.BatchNorm2d(128)
-        self.enc_pool4 = nn.MaxPool2d((2, 2), stride=2)
-        # 16 x 32 x 128
-        self.enc_conv5 = nn.Conv2d(in_channels=128, out_channels=256, kernel_size=(3, 3), padding="same")
-        self.enc_bn5 = nn.BatchNorm2d(256)
-        self.enc_conv5_1 = nn.Conv2d(in_channels=256, out_channels=256, kernel_size=(3, 3), padding="same")
-        self.enc_bn5_1 = nn.BatchNorm2d(256)
-        self.enc_pool5 = nn.MaxPool2d((2, 2), stride=2)
-        # 8 x 16 x 256
-        self.enc_conv6 = nn.Conv2d(in_channels=256, out_channels=512, kernel_size=(3, 3), padding="same")
-        self.enc_bn6 = nn.BatchNorm2d(512)
-        self.enc_conv6_1 = nn.Conv2d(in_channels=512, out_channels=512, kernel_size=(3, 3), padding="same")
-        self.enc_bn6_1 = nn.BatchNorm2d(512)
-        self.enc_pool6 = nn.MaxPool2d((2, 2), stride=2)
-        # 4 x 8 x 512
 
-        # Bottleneck
-        self.mid_conv1 = nn.Conv2d(in_channels=512, out_channels=1024, kernel_size=(3, 3), padding="same")
-        self.mid_bn1 = nn.BatchNorm2d(1024)
-        self.mid_conv1_1 = nn.Conv2d(in_channels=1024, out_channels=1024, kernel_size=(3, 3), padding="same")
-        self.mid_bn1_1 = nn.BatchNorm2d(1024)
-        # 2 x 4 x 1024
-
-        # Expansion
-        self.dec_Tconv1 = nn.ConvTranspose2d(in_channels=1024, out_channels=512, kernel_size=(2, 2), stride=2)
-        # Skip connection -> Tconv1(512 maps) + conv4_1(512 maps) = concatenated(1024 maps)
-        self.dec_conv1 = nn.Conv2d(in_channels=1024, out_channels=512, kernel_size=(3, 3), padding="same")
-        self.dec_bn1 = nn.BatchNorm2d(512)
-        self.dec_conv1_1 = nn.Conv2d(in_channels=512, out_channels=512, kernel_size=(3, 3), padding="same")
-        self.dec_bn1_1 = nn.BatchNorm2d(512)
-        # 32 x 64 x 128
-        self.dec_Tconv2 = nn.ConvTranspose2d(in_channels=512, out_channels=256, kernel_size=(2, 2), stride=2)
-        # Skip connection -> Tconv1(256 maps) + conv4_1(256 maps) = concatenated(512 maps)
-        self.dec_conv2 = nn.Conv2d(in_channels=512, out_channels=256, kernel_size=(3, 3), padding="same")
-        self.dec_bn2 = nn.BatchNorm2d(256)
-        self.dec_conv2_1 = nn.Conv2d(in_channels=256, out_channels=256, kernel_size=(3, 3), padding="same")
-        self.dec_bn2_1 = nn.BatchNorm2d(256)
-        # 32 x 64 x 128
-        self.dec_Tconv3= nn.ConvTranspose2d(in_channels=256, out_channels=128, kernel_size=(2, 2), stride=2)
-        # Skip connection -> Tconv1(128 maps) + conv4_1(128 maps) = concatenated(256 maps)
-        self.dec_conv3 = nn.Conv2d(in_channels=256, out_channels=128, kernel_size=(3, 3), padding="same")
-        self.dec_bn3 = nn.BatchNorm2d(128)
-        self.dec_conv3_1 = nn.Conv2d(in_channels=128, out_channels=128, kernel_size=(3, 3), padding="same")
-        self.dec_bn3_1 = nn.BatchNorm2d(128)
-        # 32 x 64 x 128
-        self.dec_Tconv4 = nn.ConvTranspose2d(in_channels=128, out_channels=64, kernel_size=(2, 2), stride=2)
-        # Skip connection -> Tconv2(64 maps) + conv3_1(64 maps) = concatenated(128 maps)
-        self.dec_conv4 = nn.Conv2d(in_channels=128, out_channels=64, kernel_size=(3, 3), padding="same")
-        self.dec_bn4 = nn.BatchNorm2d(64)
-        self.dec_conv4_1 = nn.Conv2d(in_channels=64, out_channels=64, kernel_size=(3, 3), padding="same")
-        self.dec_bn4_1 = nn.BatchNorm2d(64)
-        # 64 x 128 x 64
-        self.dec_Tconv5 = nn.ConvTranspose2d(in_channels=64, out_channels=32, kernel_size=(2, 2), stride=2)
-        # Skip connection -> Tconv3(32 maps) + conv2_1(32 maps) = concatenated(64 maps)
-        self.dec_conv5 = nn.Conv2d(in_channels=64, out_channels=32, kernel_size=(3, 3), padding="same")
-        self.dec_bn5 = nn.BatchNorm2d(32)
-        self.dec_conv5_1 = nn.Conv2d(in_channels=32, out_channels=32, kernel_size=(3, 3), padding="same")
-        self.dec_bn5_1 = nn.BatchNorm2d(32)
-        # 128 x 256 x 32
-        self.dec_Tconv6 = nn.ConvTranspose2d(in_channels=32, out_channels=16, kernel_size=(2, 2), stride=2)
-        # Skip connection -> Tconv4(16 maps) + conv1_1(16 maps) = concatenated(32 maps)
-        self.dec_conv6 = nn.Conv2d(in_channels=32, out_channels=16, kernel_size=(3, 3), padding="same")
-        self.dec_bn6 = nn.BatchNorm2d(16)
-        self.dec_conv6_1 = nn.Conv2d(in_channels=16, out_channels=16, kernel_size=(3, 3), padding="same")
-        self.dec_bn6_1 = nn.BatchNorm2d(16)
-        # 256 x 512 x 16
-        # Depth wise convolution using 1x1 kernel
-        self.output_layer = nn.Conv2d(in_channels=16, out_channels=n_classes, kernel_size=(1, 1))
+class Encode(nn.Module):
+    "Spatial Contraction of input"
+    def __init__(self, in_channels, out_channels, bn=True, activation="relu"):
+        super().__init__()
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.bn = bn
+        self.activation = activation
+        self.layers = []
+        for _ in range(2):
+            self.layers.append(nn.Conv2d(self.in_channels,
+                                         self.out_channels,
+                                         kernel_size=(3, 3),
+                                         padding="same"))
+            if self.bn:
+                self.layers.append(nn.BatchNorm2d(self.out_channels))
+            self.layers.append(activations.get(self.activation))
+            self.in_channels = self.out_channels
+        self.block = nn.Sequential(*self.layers)
 
     def forward(self, x):
-        # Contraction - Stage 1
-        x = self.enc_conv1(x)
-        x = self.enc_bn1(x)
-        x = nn.ReLU()(x)
-        x = self.enc_conv1_1(x)
-        x1 = self.enc_bn1_1(x)
-        x = nn.ReLU()(x)
-        x = self.enc_pool1(x1)
+        "feed forward"
+        return self.block(x)
 
-        # Contraction - Stage 2
-        x = self.enc_conv2(x)
-        x = self.enc_bn2(x)
-        x = nn.ReLU()(x)
-        x = self.enc_conv2_1(x)
-        x2 = self.enc_bn2_1(x)
-        x = nn.ReLU()(x)
-        x = self.enc_pool2(x2)
 
-        # Contraction - Stage 3
-        x = self.enc_conv3(x)
-        x = self.enc_bn3(x)
-        x = nn.ReLU()(x)
-        x = self.enc_conv3_1(x)
-        x3 = self.enc_bn3_1(x)
-        x = nn.ReLU()(x)
-        x = self.enc_pool3(x3)
+class Decode(nn.Module):
+    "Spatial Expansion of input"
+    def __init__(self, in_channels, out_channels, bn=True, activation="relu"):
+        super().__init__()
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.bn = bn
+        self.activation = activation
+        self.layers = []
+        self.upscale = nn.ConvTranspose2d(self.in_channels,
+                                          self.out_channels,
+                                          kernel_size=(2, 2),
+                                          stride=2)
+        for _ in range(2):
+            self.layers.append(nn.Conv2d(self.in_channels,
+                                         self.out_channels,
+                                         kernel_size=(3, 3),
+                                         padding="same"))
+            if self.bn:
+                self.layers.append(nn.BatchNorm2d(self.out_channels))
+            self.layers.append(activations.get(self.activation))
+            self.in_channels = self.out_channels
+        self.block = nn.Sequential(*self.layers)
 
-        # Contraction - Stage 4
-        x = self.enc_conv4(x)
-        x = self.enc_bn4(x)
-        x = nn.ReLU()(x)
-        x = self.enc_conv4_1(x)
-        x4 = self.enc_bn4_1(x)
-        x = nn.ReLU()(x)
-        x = self.enc_pool4(x4)
+    def forward(self, encoded, x):
+        "feed forward"
+        x = self.upscale(x)
+        x = torch.cat((encoded, x), dim=1)
+        x = self.block(x)
+        return x
 
-        # Contraction - Stage 5
-        x = self.enc_conv5(x)
-        x = self.enc_bn5(x)
-        x = nn.ReLU()(x)
-        x = self.enc_conv5_1(x)
-        x5 = self.enc_bn5_1(x)
-        x = nn.ReLU()(x)
-        x = self.enc_pool5(x5)
 
-        # Contraction - Stage 6
-        x = self.enc_conv6(x)
-        x = self.enc_bn6(x)
-        x = nn.ReLU()(x)
-        x = self.enc_conv6_1(x)
-        x6 = self.enc_bn6_1(x)
-        x = nn.ReLU()(x)
-        x = self.enc_pool6(x6)
+class Unet(nn.Module):
+    """U-net architecture for semantic segmentation
+       https://arxiv.org/abs/1505.04597v1"""
+    def __init__(self, n_classes=20):
+        super().__init__()
+        self.enc_ch_levels = [3, 16, 32, 64, 128, 256, 512]
+        self.mid_ch = 1024
+        self.dec_ch_levels = [self.mid_ch, 512, 256, 128, 64, 32, 16]
+        self.maxpool = nn.MaxPool2d((2, 2), stride=2)
+        self.enc_layers = []
+        for in_channels, out_channels in zip(self.enc_ch_levels,
+                                             self.enc_ch_levels[1:]):
+            self.enc_layers.append(Encode(in_channels, out_channels))
 
-        # Bottleneck
-        x = self.mid_conv1(x)
-        x = self.mid_bn1(x)
-        x = nn.ReLU()(x)
-        x = self.mid_conv1_1(x)
-        x = self.mid_bn1_1(x)
-        x = nn.ReLU()(x)
+        self.mid_layer = Encode(self.enc_ch_levels[-1], self.mid_ch)
+        self.dec_layers = []
+        for in_channels, out_channels in zip(self.dec_ch_levels,
+                                             self.dec_ch_levels[1:]):
+            self.dec_layers.append(Decode(in_channels, out_channels))
 
-        # Expansion - Stage 1
-        x = self.dec_Tconv1(x)
-        x = torch.cat((x, x6), dim=1)
-        x = self.dec_conv1(x)
-        x = nn.ReLU()(x)
-        x = self.dec_conv1_1(x)
-        x = nn.ReLU()(x)
+        self.channel_pool = nn.Conv2d(self.dec_ch_levels[-1], n_classes,
+                                      kernel_size=(1, 1))
 
-        # Expansion - Stage 2
-        x = self.dec_Tconv2(x)
-        x = torch.cat((x, x5), dim=1)
-        x = self.dec_conv2(x)
-        x = nn.ReLU()(x)
-        x = self.dec_conv2_1(x)
-        x = nn.ReLU()(x)
+    def forward(self, x):
+        "feed forward"
+        encoded_outputs = []
+        for layer in self.enc_layers:
+            x = layer(x)
+            encoded_outputs.append(x)
+            x = self.maxpool(x)
+        x = self.mid_layer(x)
+        for enc_output, layer in zip(encoded_outputs[::-1], self.dec_layers):
+            x = layer(enc_output, x)
 
-        # Expansion - Stage 3
-        x = self.dec_Tconv3(x)
-        x = torch.cat((x, x4), dim=1)
-        x = self.dec_conv3(x)
-        x = nn.ReLU()(x)
-        x = self.dec_conv3_1(x)
-        x = nn.ReLU()(x)
-
-        # Expansion - Stage 4
-        x = self.dec_Tconv4(x)
-        x = torch.cat((x, x3), dim=1)
-        x = self.dec_conv4(x)
-        x = nn.ReLU()(x)
-        x = self.dec_conv4_1(x)
-        x = nn.ReLU()(x)
-
-        # Expansion - Stage 5
-        x = self.dec_Tconv5(x)
-        x = torch.cat((x, x2), dim=1)
-        x = self.dec_conv5(x)
-        x = nn.ReLU()(x)
-        x = self.dec_conv5_1(x)
-        x = nn.ReLU()(x)
-
-        # Expansion - Stage 6
-        x = self.dec_Tconv6(x)
-        x = torch.cat((x, x1), dim=1)
-        x = self.dec_conv6(x)
-        x = nn.ReLU()(x)
-        x = self.dec_conv6_1(x)
-        x = nn.ReLU()(x)
-
-        x = self.output_layer(x)
-
+        x = self.channel_pool(x)
         return x
