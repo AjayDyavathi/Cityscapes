@@ -379,7 +379,7 @@ if __name__ == "__main__":
         else "cpu"
     )
     logger.info("Using device: %s", device)
-    print(f"Using device: {device.upper()}")
+    print(f"Using device: {device}")
 
     # Get color mapper
     colored = get_color_mapper(cfg["data"])
