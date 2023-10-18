@@ -4,7 +4,6 @@ Style adapted from https://github.com/meetps/pytorch-semseg
 
 TODO: Save model state on Keyboard Interrupt
 TODO: Use progress bars for vizualising training and overall progress
-TODO: Map class IoU indices to class names
 """
 
 # Standard imports
@@ -272,6 +271,7 @@ def train(utils, train_loader, val_loader, components):
                 time_meter.reset()
 
             if batch_num % val_interval == 0 or (
+                batch_num == n_batches) or (
                 epoch == cfg["training"]["train_epochs"] and
                     batch_num == n_batches
                     ):
@@ -305,14 +305,14 @@ def train(utils, train_loader, val_loader, components):
                 score, class_iu = running_metrics_val.get_scores()
                 for k, v in score.items():
                     print(f"\x1B[32m{k.ljust(15)}: {v:0.4f}\x1B[0m")
-                    logger.info("{%s}: {%f}", k.ljust(15), v)
+                    logger.info("%s: %f", k.ljust(15), v)
                     writer.add_scalar(f"val_metrics/{k.strip()}",
                                       v, current_iter)
 
                 # Register and log class wise IoU scores
                 for k, v in class_iu.items():
-                    logger.info("[Class IoU] {%d}: {%f}", k, v)
-                    writer.add_scalar(f"val_metrics/class_iou/class_{k}",
+                    logger.info("[Class IoU] %s: %f", k, v)
+                    writer.add_scalar(f"val_metrics/class_iou/{k}",
                                       v, current_iter)
 
                 val_loss_meter.reset()
@@ -337,6 +337,7 @@ def train(utils, train_loader, val_loader, components):
                     }
                     save_state(utils, components_, score["Mean IoU"])
 
+        print()
         if epoch == cfg["training"]["train_epochs"]:
             training_finished = True
             break
