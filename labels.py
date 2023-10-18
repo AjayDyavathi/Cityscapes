@@ -112,6 +112,9 @@ id2trainId = {label.id: label.trainId for label in labels}
 trainId2color = {label.trainId: label.color for label in labels}
 trainId2color[255] = (0, 0, 0)
 
+# trainID t0 name
+trainId2name = {label.trainId: label.name for label in labels}
+
 # Please refer to the main method below for example usages!
 
 # name to label object
