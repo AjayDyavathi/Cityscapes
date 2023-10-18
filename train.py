@@ -2,14 +2,14 @@
 train.py
 Style and Structure adapted from https://github.com/meetps/pytorch-semseg
 
-TODO: Move model state loading to a new function
 TODO: Save model state on Keyboard Interrupt
-TODO: Store colored predictions in tf.summary for vizualisation
 TODO: Use progress bars for vizualising training and overall progress
+TODO: Map class IoU indices to class names
 """
 
 # Standard imports
 import os
+import sys
 import time
 import shutil
 import argparse
@@ -19,7 +19,6 @@ from datetime import datetime
 from yaml import load, Loader
 import torch
 import numpy as np
-from PIL import Image
 from tqdm import tqdm
 from torchvision import transforms
 from torch.utils.data import DataLoader
@@ -121,40 +120,84 @@ def prepare_components(utils):
     # Loss function
     criterion = get_loss(cfg["training"]["loss"])
 
+    # Start Epoch
+    start_epoch = 0
+    best_iou = -100.0
+
     return {"model": model,
             "optimizer": optimizer,
             "scheduler": scheduler,
-            "criterion": criterion}
+            "criterion": criterion,
+            "start_epoch": start_epoch,
+            "best_iou": best_iou}
 
 
-def train(utils, train_loader, val_loader, components_dict):
-    "Training"
+def load_state(utils, components):
+    "Load model, optimizer, scheduler state from previous checkpoint"
+    cfg = utils["cfg"]
+    logger = utils["logger"]
+
+    checkpoint_path = cfg["training"]["checkpoint"]
+    if os.path.isfile(checkpoint_path):
+        logger.info("Loading model and optimizer from checkpoint: '%s'",
+                    checkpoint_path)
+        checkpoint = torch.load(checkpoint_path)
+        components["model"].load_state_dict(checkpoint["model_state"])
+        components["optimizer"].load_state_dict(checkpoint["optimizer_state"])
+        components["scheduler"].load_state_dict(checkpoint["scheduler_state"])
+        components["start_epoch"] = checkpoint["epoch"]
+        components["best_iou"] = checkpoint["best_iou"]
+    else:
+        logger.info("Checkpoint doesn't exist at '%s'", checkpoint_path)
+
+    return components
+
+
+def save_state(utils, components, iou, name=None):
+    "Save model, and other components"
+    cfg = utils["cfg"]
+    writer = utils["writer"]
+    if name is None:
+        name = cfg['model']['architecture'] + "_best_model"
+    state = {
+        "epoch": components["epoch"],
+        "model_state": components["model"].state_dict(),
+        "optimizer_state": components["optimizer"].state_dict(),
+        "scheduler_state": components["scheduler"].state_dict(),
+        "best_iou": iou,
+    }
+    save_path = os.path.join(
+        writer.file_writer.get_logdir(),
+        f"{name}.pkl"
+    )
+    torch.save(state, save_path)
+
+
+def train(utils, train_loader, val_loader, components):
+    """ Training
+        utils is expected to be a dictionary with
+        cfg: config from yaml
+        device: device (default CPU)
+        logger: logger used
+        writer: summary writer used
+    """
     cfg = utils["cfg"]
     device = utils.get("device", "cpu")
     logger = utils["logger"]
     writer = utils["writer"]
-    # Load components from dict
-    model = components_dict["model"]
-    optimizer = components_dict["optimizer"]
-    scheduler = components_dict["scheduler"]
-    criterion = components_dict["criterion"]
+    colored = utils["colored"]
 
-    start_epoch = 0
-    best_iou = -100.0
-    # Load checkpoint if exists
     checkpoint_path = cfg["training"]["checkpoint"]
     if cfg["training"]["resume"] and checkpoint_path is not None:
-        if os.path.isfile(checkpoint_path):
-            logger.info("Loading model and optimizer from checkpoint: '%s'",
-                        checkpoint_path)
-            checkpoint = torch.load(checkpoint_path)
-            model.load_state_dict(checkpoint["model_state"])
-            optimizer.load_state_dict(checkpoint["optimizer_state"])
-            scheduler.load_state_dict(checkpoint["scheduler_state"])
-            start_epoch = checkpoint["epoch"]
-            best_iou = checkpoint["best_iou"]
-        else:
-            logger.info("Checkpoint doesn't exist at '%s'", checkpoint_path)
+        components = load_state(utils, components)
+
+    # Load components from dict
+    model = components["model"]
+    optimizer = components["optimizer"]
+    scheduler = components["scheduler"]
+    criterion = components["criterion"]
+    start_epoch = components["start_epoch"]
+    best_iou = components["best_iou"]
 
     # Start training
     running_metrics_val = RunningScore(cfg["model"]["n_classes"])
@@ -164,11 +207,12 @@ def train(utils, train_loader, val_loader, components_dict):
     epoch = start_epoch
     training_finished = False
     n_batches = len(train_loader)
+    n_epochs = cfg["training"]["train_epochs"]
 
-    while epoch <= cfg["training"]["train_epochs"] and not training_finished:
+    while epoch <= n_epochs and not training_finished:
         epoch += 1
         for batch_num, (images, labels) in enumerate(train_loader, 1):
-            current_iter = epoch * n_batches + batch_num
+            current_iter = (epoch - 1) * n_batches + batch_num
             # Mark current time
             tic = time.time()
             # Set the model to train mode
@@ -196,16 +240,21 @@ def train(utils, train_loader, val_loader, components_dict):
             time_meter.update(toc - tic)
 
             # If batch reaches print interval
-            if batch_num % cfg["training"]["print_interval"] == 0:
+            print_interval = cfg["training"]["print_interval"]
+            val_interval = cfg["training"]["val_interval"]
+            if batch_num % print_interval == 0:
+                time_per_batch = time_meter.mean
+                n_batches_left = n_batches - batch_num
+                n_vals_left = ((n_batches - batch_num) // val_interval) + 1
+                eta_epoch = time_per_batch * (n_batches_left + n_vals_left)
+
                 # Format a string with stats
-                fmt_str = "[Epoch {:03d}][{:03d}/{:03d}] \
-Loss: {:0.4f} Time/Image: {:0.4f}"
+                fmt_str = "[{:03d}/{:03d}]\x1B[36m[{:03d}/{:03d}] \
+\x1B[31mLoss: {:0.3f}\x1B[0m Time/Batch: {:0.2f}s \x1B[33mETA: {:0.2f}m\x1B[0m"
                 print_str = fmt_str.format(
-                    epoch,
-                    batch_num,
-                    n_batches,
-                    loss.item(),
-                    time_meter.mean/cfg["training"]["batch_size"]
+                    epoch, n_epochs,
+                    batch_num, n_batches,
+                    loss.item(), time_per_batch, eta_epoch/60
                 )
                 # Print it
                 print(print_str)
@@ -219,13 +268,14 @@ Loss: {:0.4f} Time/Image: {:0.4f}"
                 # Reset time meter
                 time_meter.reset()
 
-            if batch_num % cfg["training"]["val_interval"] == 0 or (
+            if batch_num % val_interval == 0 or (
                 epoch == cfg["training"]["train_epochs"] and
                     batch_num == n_batches
                     ):
                 # Set the model to evaluation mode
                 model.eval()
                 tqdm_val_loader = tqdm(enumerate(val_loader))
+                # Don't compute the gradients for validation
                 with torch.no_grad():
                     for b_num_val, (images_val, labels_val) in tqdm_val_loader:
                         images_val = images_val.to(device)
@@ -234,25 +284,29 @@ Loss: {:0.4f} Time/Image: {:0.4f}"
                         outputs_val = model(images_val)
                         val_loss = criterion(outputs_val, labels_val)
 
-                        predictions = outputs_val.data.max(1)[1].cpu().numpy()
-                        gt = labels_val.data.cpu().numpy()
+                        # Convert the onehot encoded feature maps to prediction
+                        predictions = outputs_val.data.max(1)[1]
+                        gt = labels_val.data
 
                         running_metrics_val.update(gt, predictions)
                         val_loss_meter.update(val_loss.item())
 
+                # Register and log val loss
                 writer.add_scalar("loss/val_loss",
                                   val_loss_meter.mean, current_iter)
                 logger.info("[VALID][Epoch %03d][%03d/%03d] Loss: %.04f",
                             epoch, batch_num, n_batches,
                             val_loss_meter.mean)
 
+                # Register and log metrics
                 score, class_iu = running_metrics_val.get_scores()
                 for k, v in score.items():
-                    print(f"{k.ljust(15)}: {v}")
+                    print(f"\x1B[32m{k.ljust(15)}: {v:0.4f}\x1B[0m")
                     logger.info("{%s}: {%f}", k.ljust(15), v)
                     writer.add_scalar(f"val_metrics/{k.strip()}",
                                       v, current_iter)
 
+                # Register and log class wise IoU scores
                 for k, v in class_iu.items():
                     logger.info("[Class IoU] {%d}: {%f}", k, v)
                     writer.add_scalar(f"val_metrics/class_iou/class_{k}",
@@ -261,20 +315,24 @@ Loss: {:0.4f} Time/Image: {:0.4f}"
                 val_loss_meter.reset()
                 running_metrics_val.reset()
 
+                # map predictions to colors
+                rgb_preds = torch.stack(list(map(colored, predictions)))
+                rgb_labels = torch.stack(list(map(colored, labels_val)))
+                # Write images and label masks only once
+                if current_iter == val_interval:
+                    writer.add_images("Images", images_val, current_iter)
+                    writer.add_images("Labels", rgb_labels, current_iter)
+
+                writer.add_images("Predictions", rgb_preds, current_iter)
+                # Save the model and components for best IoU score
                 if score["Mean IoU"] >= best_iou:
-                    best_iou = score["Mean IoU"]
-                    state = {
+                    components_ = {
                         "epoch": epoch,
-                        "model_state": model.state_dict(),
-                        "optimizer_state": optimizer.state_dict(),
-                        "scheduler_state": scheduler.state_dict(),
-                        "best_iou": best_iou,
+                        "model": model,
+                        "optimizer": optimizer,
+                        "scheduler": scheduler
                     }
-                    save_path = os.path.join(
-                        writer.file_writer.get_logdir(),
-                        f"{cfg['model']['architecture']}_best_model.pkl"
-                    )
-                    torch.save(state, save_path)
+                    save_state(utils, components_, score["Mean IoU"])
 
         if epoch == cfg["training"]["train_epochs"]:
             training_finished = True
@@ -328,4 +386,12 @@ if __name__ == "__main__":
              "colored": colored}
     train_loader, val_loader = prepare_data(utils)
     components = prepare_components(utils)
-    train(utils, train_loader, val_loader, components)
+    try:
+        train(utils, train_loader, val_loader, components)
+    except KeyboardInterrupt:
+        writer.close()
+        print("*Keyboard Interrupt*")
+        try:
+            sys.exit(130)
+        except SystemExit:
+            os._exit(130)
