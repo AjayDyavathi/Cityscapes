@@ -13,6 +13,7 @@ https://github.com/wkentaro/pytorch-fcn/blob/master/torchfcn/utils.py
 """
 import torch
 import numpy as np
+from labels import trainId2name
 
 
 class RunningScore():
@@ -62,7 +63,9 @@ class RunningScore():
             mean_iu = np.nanmean(iu)
             freq = conf_mx.sum(axis=1) / conf_mx.sum()
             fwav = (freq[freq > 0] * iu[freq > 0]).sum()
-            class_iu = dict(zip(range(self.n_classes), iu))
+            class_iu = {trainId2name.get(i, "ignore"): class_iu_
+                        for i, class_iu_ in enumerate(iu)}
+            # class_iu = dict(zip(range(self.n_classes), iu))
         score_dict = {
             "Accuracy": accuracy,
             "Mean Accuracy": acc_class_mean,
