@@ -1,6 +1,6 @@
 """
 train.py
-Style and Structure adapted from https://github.com/meetps/pytorch-semseg
+Style adapted from https://github.com/meetps/pytorch-semseg
 
 TODO: Save model state on Keyboard Interrupt
 TODO: Use progress bars for vizualising training and overall progress
@@ -208,6 +208,7 @@ def train(utils, train_loader, val_loader, components):
     training_finished = False
     n_batches = len(train_loader)
     n_epochs = cfg["training"]["train_epochs"]
+    batch_size = cfg["training"]["batch_size"]
 
     while epoch <= n_epochs and not training_finished:
         epoch += 1
@@ -250,11 +251,13 @@ def train(utils, train_loader, val_loader, components):
 
                 # Format a string with stats
                 fmt_str = "[{:03d}/{:03d}]\x1B[36m[{:03d}/{:03d}] \
-\x1B[31mLoss: {:0.3f}\x1B[0m Time/Batch: {:0.2f}s \x1B[33mETA: {:0.2f}m\x1B[0m"
+\x1B[31mLoss: {:0.3f}\x1B[0m Time/Batch({}): {:0.2f}s \
+\x1B[33mETA: {:0.2f}m\x1B[0m"
                 print_str = fmt_str.format(
                     epoch, n_epochs,
                     batch_num, n_batches,
-                    loss.item(), time_per_batch, eta_epoch/60
+                    loss.item(), batch_size,
+                    time_per_batch, eta_epoch/60
                 )
                 # Print it
                 print(print_str)
@@ -376,6 +379,7 @@ if __name__ == "__main__":
         else "cpu"
     )
     logger.info("Using device: %s", device)
+    print(f"Using device: {device.upper()}")
 
     # Get color mapper
     colored = get_color_mapper(cfg["data"])
