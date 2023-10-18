@@ -158,9 +158,12 @@ def get_color_mapper(dim_data):
     n_channels = 3
 
     def colored(pred):
-        rgb_pred = torch.zeros((height, width, n_channels)).long()
+        dev = pred.device
+        rgb_pred = torch.zeros(n_channels, height, width, dtype=torch.uint8,
+                               device=dev)
         for (train_id, color) in trainId2color.items():
-            rgb_pred[pred == train_id] = torch.tensor(color)
+            rgb_pred += (torch.stack([pred == train_id] * 3, dim=0) *
+                         torch.tensor(color, device=dev).view(3, 1, 1))
 
         return rgb_pred
     return colored
