@@ -3,6 +3,7 @@ train.py
 Style adapted from https://github.com/meetps/pytorch-semseg
 
 TODO: Save model state on Keyboard Interrupt
+TODO: Implement early stopping
 TODO: Use progress bars for vizualising training and overall progress
 """
 
