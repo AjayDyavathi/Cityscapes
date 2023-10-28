@@ -18,7 +18,7 @@ training:
     scheduler:
         name: constant
     loss:
-        name: ce2d
+        name: focus
     resume: false
     checkpoint: false
     train_epochs: 100
