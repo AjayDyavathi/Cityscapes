@@ -18,7 +18,7 @@ training:
     scheduler:
         name: constant
     loss:
-        name: focus
+        name: focal
     resume: false
     checkpoint: false
     train_epochs: 100
