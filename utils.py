@@ -13,9 +13,9 @@ import numpy as np
 from torch import optim
 
 from models import Unet
-from loss import cross_entropy_2d
 from schedulers import ConstantLR
 from labels import id2trainId, trainId2color
+from loss import cross_entropy_2d, focal_loss_2d
 
 
 # Cityscapes metrics
@@ -127,7 +127,8 @@ def get_loss(loss_data):
     "Returns loss function"
     def _get_loss_function(name):
         loss_map = {
-            "ce2d": cross_entropy_2d
+            "ce2d": cross_entropy_2d,
+            "focal": focal_loss_2d,
         }
         return loss_map.get(name.lower())
 
