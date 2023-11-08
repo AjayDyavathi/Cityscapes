@@ -13,7 +13,7 @@ https://github.com/wkentaro/pytorch-fcn/blob/master/torchfcn/utils.py
 """
 import torch
 import numpy as np
-from labels import trainId2name
+from data.cityscapes_labels import trainId2name
 
 
 class RunningScore():

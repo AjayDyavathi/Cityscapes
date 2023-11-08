@@ -2,9 +2,8 @@
 train.py
 Style adapted from https://github.com/meetps/pytorch-semseg
 
-TODO: Save model state on Keyboard Interrupt
 TODO: Implement early stopping
-TODO: Use progress bars for vizualising training and overall progress
+TODO: Use modern techniques for visualizing training progess
 """
 
 # Standard imports
@@ -25,8 +24,8 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
 # Local imports
-from dataset import Cityscapes
-from metrics import AverageMeter, RunningScore
+from data.cityscapes import Cityscapes
+from metrics.metrics import AverageMeter, RunningScore
 from utils import (ZERO_MEAN, UNIT_STD,
                    preprocess_labels,
                    get_logger,

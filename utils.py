@@ -12,10 +12,10 @@ import torch
 import numpy as np
 from torch import optim
 
-from models import Unet
-from schedulers import ConstantLR
-from labels import id2trainId, trainId2color
-from loss import cross_entropy_2d, focal_loss_2d
+from models.unet import Unet
+from schedulers.schedulers import ConstantLR
+from data.cityscapes_labels import id2trainId, trainId2color
+from loss.loss import cross_entropy_2d, focal_loss_2d
 
 
 # Cityscapes metrics
