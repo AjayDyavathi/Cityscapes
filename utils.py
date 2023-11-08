@@ -13,6 +13,7 @@ import numpy as np
 from torch import optim
 
 from models.unet import Unet
+from models.segnet import Segnet
 from schedulers.schedulers import ConstantLR
 from data.cityscapes_labels import id2trainId, trainId2color
 from loss.loss import cross_entropy_2d, focal_loss_2d
@@ -54,6 +55,7 @@ def get_model(model_data):
     def _get_model_class(name):
         model_map = {
             "unet": Unet,
+            "segnet": Segnet,
         }
         return model_map.get(name.lower())
 
